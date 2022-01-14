@@ -7,15 +7,13 @@ import json
 from collections import OrderedDict
 
 
-TOKEN = '' #insert bot token here
+TOKEN = ''
 
 client = discord.Client()
 
 async def get_logs(channel):
-    print("Getting logs from "+ channel)
-    msg_list = []
-    async for msg in client.logs_from(channel, limit=10000000):
-        msg_list.append(msg)
+    print("Getting logs from "+ str(channel.name))
+    msg_list = await channel.history(limit=100000).flatten()
     
     print( "Read " + str(len(msg_list)) + " messages")
     return msg_list
@@ -61,71 +59,67 @@ async def help(author): # Modify based on commands added
 
     Usage - !stats <command>,<command2>,<command3>,...
 
-    valid commands - win, loss, joy, syringe, pensive, 100, ok, help, hello
+    valid commands - win, loss, joy, syringe, pensive, 100, ok, help, hello, star
     """
 
 @client.event
 async def on_message(message):
     # we do not want the bot to reply to itself
+
     if message.author == client.user:
         return
     if (message.content.startswith('!stats ')):
         val = message.content[7:] #get command name from message
-        
-
-        if not(message.author.id == '160157662204526602' or message.author.id== '424975538721914900' or val == 'hello' or val == 'help'):
-            msg = "You do not meet the weight requirements to use this bot."
-        
-        
+            
+        if(val == 'help' or val =='hello'):
+            msg = await globals()[val](message.author)  
         else:
-            
-            if(val == 'help' or val =='hello'):
-                msg = await globals()[val](message.author)  
-            else:
-                flag = 0
-                emoji_dict = {
-                    "win" : "🇼",
-                    "loss" : "🇱",
-                    "syringe" : "💉" ,
-                    "pensive" : "😔",
-                    "joy" : "😂",
-                    "100" : "💯",
-                    "ok" : "👌",
-                    "eggplant" : "🍆",
-                    "peach" : "🍑",
-                    "write": "✍",
-                    "sob" : "😭",
-                    "tomato" : "🍅"
-                }
+            flag = 0
+            emoji_dict = {
+                "win" : "🇼",
+                "loss" : "🇱",
+                "syringe" : "💉" ,
+                "pensive" : "😔",
+                "joy" : "😂",
+                "100" : "💯",
+                "ok" : "👌",
+                "eggplant" : "🍆",
+                "peach" : "🍑",
+                "write": "✍",
+                "sob" : "😭",
+                "tomato" : "🍅",
+                "star" : "⭐"
+            }
 
-                try:
-                    val_list = val.split(",")
-                except: 
+            try:
+                val_list = val.split(",")
+            except: 
+                flag = 1
+            
+            for item in val_list:
+                if not(item in emoji_dict.keys()):
                     flag = 1
-               
-                for item in val_list:
-                    if not(item in emoji_dict.keys()):
-                        flag = 1
 
-                if (flag == 0):
-                    member_list = message.channel.server.members
-                    msg = ""
-                    channel = client.get_channel("585260614683983872")
-                    msg_list = await get_logs(channel) #replace with channel you want to track 
-                    for item in val_list:
-                        print("calling ", item)
-                        member_dict = await count_reacts(emoji_dict[item], msg_list)
-                        if(len(member_dict.keys())):
-                            msg = msg + await get_leaders(emoji_dict[item], member_dict, channel, member_list)
-                        else:
-                            msg = msg + "No stats for " + str(item) + " emoji found. \n"
-                else:
-                    msg = "Invalid Command List. Try again."
-                        
-            
+            if (flag == 0):
+                member_list = message.channel.guild.members
+                msg = ""
+                channel = client.get_channel(630929071165145088)
+                print(channel)
+                msg_list = await get_logs(channel) #replace with channel you want to track 
+                for item in val_list:
+                    print("calling ", item)
+                    member_dict = await count_reacts(emoji_dict[item], msg_list)
+                    if(len(member_dict.keys())):
+                        msg = msg + await get_leaders(emoji_dict[item], member_dict, channel, member_list)
+                    else:
+                        msg = msg + "No stats for " + str(item) + " emoji found. \n"
+            else:
+                msg = "Invalid Command List. Try again."
+                    
+        
         if not(msg is None):
             print("SUCCESS")
-            await client.send_message(message.channel, msg)
+            await message.channel.send(msg)
             
 @client.event
 async def on_ready():
@@ -135,4 +129,3 @@ async def on_ready():
     print('------')
 
 client.run(TOKEN)
-
